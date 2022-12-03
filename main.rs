@@ -22,13 +22,23 @@ fn input() -> reader::Reader {
 }
 
 #[test]
-fn test_part_one() {
+fn test_part_one_example() {
     assert_eq!(part_one(get_test_input()), 0);
 }
 
 #[test]
-fn test_part_two() {
+fn test_part_two_example() {
     assert_eq!(part_two(get_test_input()), 0);
+}
+
+#[test]
+fn test_part_one() {
+    assert_eq!(part_one(input()), 0);
+}
+
+#[test]
+fn test_part_two() {
+    assert_eq!(part_two(input()), 0);
 }
 
 #[cfg(test)]
