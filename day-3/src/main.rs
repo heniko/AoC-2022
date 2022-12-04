@@ -4,38 +4,43 @@ fn to_priority(c: char) -> usize {
     match c {
         'a'..='z' => c as usize - 'a' as usize + 1,
         'A'..='Z' => c as usize - 'A' as usize + 1 + 26,
-        _ => 0,
+        _ => panic!("Invalid character: {}", c),
     }
 }
 
-fn line_priority(s: &str) -> usize {
-    let first = &s[..s.len() / 2];
-    let second = &s[s.len() / 2..];
-
-    let first_chars = first.chars().collect::<Vec<char>>();
-    let second_chars = second.chars().collect::<Vec<char>>();
-
-    for ch in first_chars {
-        if second_chars.iter().any(|&i| i == ch) {
-            return to_priority(ch);
-        }
-    }
-
-    0
+fn find_common(a: Vec<char>, b: Vec<char>) -> Vec<char> {
+    a.into_iter().filter(|elem| b.contains(elem)).collect()
 }
 
 fn part_one(input: reader::Reader) -> usize {
     input
         .lines()
         .iter()
-        .map(|line| line_priority(line))
-        .collect::<Vec<usize>>()
-        .iter()
+        .map(|elem| {
+            find_common(
+                elem[..elem.len() / 2].chars().collect::<Vec<char>>(),
+                elem[elem.len() / 2..].chars().collect::<Vec<char>>(),
+            )
+        })
+        .map(|elem| to_priority(elem[0]))
         .sum()
 }
 
 fn part_two(input: reader::Reader) -> usize {
-    0
+    input
+        .lines()
+        .chunks(3)
+        .map(|chunk| {
+            find_common(
+                chunk[0].chars().collect::<Vec<char>>(),
+                find_common(
+                    chunk[1].chars().collect::<Vec<char>>(),
+                    chunk[2].chars().collect::<Vec<char>>(),
+                ),
+            )
+        })
+        .map(|elem| to_priority(elem[0]))
+        .sum()
 }
 
 fn main() {
@@ -67,7 +72,7 @@ fn test_part_one() {
 
 #[test]
 fn test_part_two() {
-    assert_eq!(part_two(input()), 0);
+    assert_eq!(part_two(input()), 2790);
 }
 
 #[cfg(test)]
