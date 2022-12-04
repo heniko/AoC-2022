@@ -27,13 +27,13 @@ fn test_part_one_example() {
 }
 
 #[test]
-fn test_part_two_example() {
-    assert_eq!(part_two(get_test_input()), 0);
+fn test_part_one() {
+    assert_eq!(part_one(input()), 0);
 }
 
 #[test]
-fn test_part_one() {
-    assert_eq!(part_one(input()), 0);
+fn test_part_two_example() {
+    assert_eq!(part_two(get_test_input()), 0);
 }
 
 #[test]
