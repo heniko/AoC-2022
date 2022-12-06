@@ -106,7 +106,6 @@ fn part_one(input: reader::Reader) -> String {
     let instructions = parse_instructions(input_divided.pop().unwrap());
 
     let stacks = parse_crates(input_divided.pop().unwrap());
-    dbg!("{}", &stacks);
     let mut crane = CrateMover::from(stacks);
 
     for ins in instructions.iter() {
@@ -121,7 +120,6 @@ fn part_two(input: reader::Reader) -> String {
     let instructions = parse_instructions(input_divided.pop().unwrap());
 
     let stacks = parse_crates(input_divided.pop().unwrap());
-    dbg!("{}", &stacks);
     let mut crane = CrateMover::from(stacks);
 
     for ins in instructions.iter() {
