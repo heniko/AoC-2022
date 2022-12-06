@@ -21,12 +21,18 @@ impl CrateMover {
         }
     }
 
-    fn move_crates(&mut self, amount: usize, from: usize, to: usize) {
-        for _ in 0..amount {
-            self.held_crates.push(self.stacks[from - 1].pop().unwrap());
+    fn move_crates(&mut self, instruction: &Instruction, is_version_9000: bool) {
+        for _ in 0..instruction.amount {
+            self.held_crates
+                .push(self.stacks[instruction.from - 1].pop().unwrap());
         }
-        for _ in 0..amount {
-            self.stacks[to - 1].push(self.held_crates.pop().unwrap());
+
+        if is_version_9000 {
+            self.held_crates.reverse();
+        }
+
+        for _ in 0..instruction.amount {
+            self.stacks[instruction.to - 1].push(self.held_crates.pop().unwrap());
         }
     }
 
@@ -35,16 +41,6 @@ impl CrateMover {
             .iter()
             .map(|stack| stack.last().clone().unwrap())
             .fold(String::new(), |acc, new| format!("{}{}", acc, new))
-    }
-
-    fn execute_version_9000_instruction(&mut self, instruction: &Instruction) {
-        for _ in 0..instruction.amount {
-            self.move_crates(1, instruction.from, instruction.to);
-        }
-    }
-
-    fn execute_version_9001_instruction(&mut self, instruction: &Instruction) {
-        self.move_crates(instruction.amount, instruction.from, instruction.to);
     }
 }
 
@@ -81,50 +77,46 @@ fn parse_crates(crate_input: String) -> Vec<Vec<String>> {
 }
 
 fn parse_instructions(instruction_input: String) -> Vec<Instruction> {
-    let instruction_lines = instruction_input
+    let re = Regex::new(r"^move (\d*) from (\d*) to (\d*)$").unwrap();
+
+    instruction_input
         .lines()
-        .map(|l| l.to_string())
-        .collect::<Vec<String>>();
-
-    let instruction_line_pattern = Regex::new(r"^move (\d*) from (\d*) to (\d*)$").unwrap();
-
-    instruction_lines
-        .iter()
         .map(|line| {
-            let cap = instruction_line_pattern.captures(line).unwrap();
-            return Instruction {
-                amount: cap[1].parse::<usize>().unwrap(),
-                from: cap[2].parse::<usize>().unwrap(),
-                to: cap[3].parse::<usize>().unwrap(),
-            };
+            re.captures(line)
+                .map(|cap| Instruction {
+                    amount: cap[1].parse::<usize>().unwrap(),
+                    from: cap[2].parse::<usize>().unwrap(),
+                    to: cap[3].parse::<usize>().unwrap(),
+                })
+                .unwrap()
         })
         .collect::<Vec<Instruction>>()
 }
 
 fn part_one(input: reader::Reader) -> String {
-    let mut input_divided = input.split_on_empty_line();
-    let instructions = parse_instructions(input_divided.pop().unwrap());
+    let mut s_input = input.split_on_empty_line();
+    let instructions = s_input.pop().unwrap().to_string();
+    let crates = s_input.pop().unwrap().to_string();
 
-    let stacks = parse_crates(input_divided.pop().unwrap());
-    let mut crane = CrateMover::from(stacks);
+    let mut crane = CrateMover::from(parse_crates(crates));
 
-    for ins in instructions.iter() {
-        crane.execute_version_9000_instruction(ins)
-    }
+    parse_instructions(instructions)
+        .iter()
+        .for_each(|ins| crane.move_crates(ins, true));
 
     crane.read_top_line()
 }
 
 fn part_two(input: reader::Reader) -> String {
-    let mut input_divided = input.split_on_empty_line();
-    let instructions = parse_instructions(input_divided.pop().unwrap());
+    let mut s_input = input.split_on_empty_line();
+    let instructions = s_input.pop().unwrap().to_string();
+    let crates = s_input.pop().unwrap().to_string();
 
-    let stacks = parse_crates(input_divided.pop().unwrap());
-    let mut crane = CrateMover::from(stacks);
+    let mut crane = CrateMover::from(parse_crates(crates));
 
-    for ins in instructions.iter() {
-        crane.execute_version_9001_instruction(ins)
-    }
+    parse_instructions(instructions)
+        .iter()
+        .for_each(|ins| crane.move_crates(ins, false));
 
     crane.read_top_line()
 }
