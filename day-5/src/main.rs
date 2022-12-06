@@ -8,81 +8,76 @@ struct Instruction {
     to: usize,
 }
 
-struct CargoCrane {
-    crates: Vec<Vec<String>>,
+struct CrateMover {
+    stacks: Vec<Vec<String>>,
+    held_crates: Vec<String>,
 }
 
-impl CargoCrane {
-    fn move_crate(&mut self, from: usize, to: usize) {
-        let c = self.crates[from].pop();
-        match c {
-            Some(value) => {
-                self.crates[to].push(value);
-            }
-            None => {
-                self.print_crates();
-                panic!("From: {}, To: {}", from, to);
-            }
+impl CrateMover {
+    fn from(stacks: Vec<Vec<String>>) -> CrateMover {
+        CrateMover {
+            stacks,
+            held_crates: vec![],
         }
     }
 
-    fn run_instruction(&mut self, instruction: &Instruction) {
+    fn move_crates(&mut self, amount: usize, from: usize, to: usize) {
+        for _ in 0..amount {
+            self.held_crates.push(self.stacks[from - 1].pop().unwrap());
+        }
+        for _ in 0..amount {
+            self.stacks[to - 1].push(self.held_crates.pop().unwrap());
+        }
+    }
+
+    fn read_top_line(&mut self) -> String {
+        self.stacks
+            .iter()
+            .map(|stack| stack.last().clone().unwrap())
+            .fold(String::new(), |acc, new| format!("{}{}", acc, new))
+    }
+
+    fn execute_version_9000_instruction(&mut self, instruction: &Instruction) {
         for _ in 0..instruction.amount {
-            self.move_crate(instruction.from, instruction.to);
+            self.move_crates(1, instruction.from, instruction.to);
         }
     }
 
-    fn get_top_row(&mut self) -> String {
-        let mut res = String::new();
-
-        for i in 1..self.crates.len() {
-            let top = self.crates[i].pop();
-
-            if let Some(text) = top {
-                res = format!("{}{}", res, text);
-            }
-        }
-
-        res
-    }
-
-    fn print_crates(&self) {
-        println!("{:?}", &self.crates);
+    fn execute_version_9001_instruction(&mut self, instruction: &Instruction) {
+        self.move_crates(instruction.amount, instruction.from, instruction.to);
     }
 }
 
 fn parse_crates(crate_input: String) -> Vec<Vec<String>> {
-    let mut crate_lines = crate_input
-        .lines()
-        .map(|l| l.to_string())
-        .collect::<Vec<String>>();
-    dbg!("{}", crate_lines.pop()); // Remove crate index line
+    let mut split_lines = crate_input.lines().collect::<Vec<&str>>();
+    split_lines.pop();
 
-    let crate_line_pattern = Regex::new(r"(^| )(   |\[\w\])").unwrap();
-
-    let mut crates_parsed = crate_lines
+    let lines = split_lines
         .iter()
         .map(|line| {
-            crate_line_pattern
-                .captures_iter(line)
-                .map(|capture| capture[2][1..2].to_string())
+            line.chars()
+                .collect::<Vec<char>>()
+                .chunks(4)
+                .map(|chunk| chunk[1].to_string())
                 .collect::<Vec<String>>()
         })
+        .rev()
         .collect::<Vec<Vec<String>>>();
 
-    crates_parsed.reverse();
-
-    let mut crates: Vec<Vec<String>> = vec![vec![]; crates_parsed[0].len() + 1];
-
-    for line in crates_parsed.iter() {
-        for i in 0..crates_parsed[0].len() {
-            if line[i] != " ".to_string() {
-                crates[i + 1].push(line[i].to_owned());
-            }
-        }
-    }
-
-    crates
+    // https://stackoverflow.com/questions/64498617/how-to-transpose-a-vector-of-vectors-in-rust
+    (0..lines[0].len())
+        .map(|i| {
+            lines
+                .iter()
+                .map(|inner| inner[i].clone())
+                .collect::<Vec<String>>()
+        })
+        .map(|line| {
+            line.into_iter()
+                .filter(|elem| elem != &" ".to_string())
+                .collect()
+        })
+        .collect()
 }
 
 fn parse_instructions(instruction_input: String) -> Vec<Instruction> {
@@ -108,22 +103,32 @@ fn parse_instructions(instruction_input: String) -> Vec<Instruction> {
 
 fn part_one(input: reader::Reader) -> String {
     let mut input_divided = input.split_on_empty_line();
-
     let instructions = parse_instructions(input_divided.pop().unwrap());
 
-    let mut cg = CargoCrane {
-        crates: parse_crates(input_divided.pop().unwrap()),
-    };
+    let stacks = parse_crates(input_divided.pop().unwrap());
+    dbg!("{}", &stacks);
+    let mut crane = CrateMover::from(stacks);
 
     for ins in instructions.iter() {
-        cg.run_instruction(ins);
+        crane.execute_version_9000_instruction(ins)
     }
 
-    cg.get_top_row()
+    crane.read_top_line()
 }
 
 fn part_two(input: reader::Reader) -> String {
-    "".to_string()
+    let mut input_divided = input.split_on_empty_line();
+    let instructions = parse_instructions(input_divided.pop().unwrap());
+
+    let stacks = parse_crates(input_divided.pop().unwrap());
+    dbg!("{}", &stacks);
+    let mut crane = CrateMover::from(stacks);
+
+    for ins in instructions.iter() {
+        crane.execute_version_9001_instruction(ins)
+    }
+
+    crane.read_top_line()
 }
 
 fn main() {
@@ -150,13 +155,12 @@ fn test_part_one() {
 
 #[test]
 fn test_part_two_example() {
-    assert_eq!(part_two(get_test_input()), "".to_string());
+    assert_eq!(part_two(get_test_input()), "MCD".to_string());
 }
 
-#[ignore]
 #[test]
 fn test_part_two() {
-    assert_eq!(part_two(input()), "".to_string());
+    assert_eq!(part_two(input()), "HZFZCCWWV".to_string());
 }
 
 #[cfg(test)]
