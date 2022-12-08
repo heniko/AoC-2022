@@ -78,31 +78,41 @@ fn parse_fs(input: reader::Reader) -> FileSystem {
     parse_folder(&mut lines, "/".to_string())
 }
 
-fn traverse_fs(fs: &FileSystem) -> usize {
-    let mut res = 0;
-
+fn traverse_fs(fs: &FileSystem, res: &mut Vec<usize>) {
     if let FileSystem::Folder { files, name, size } = fs {
-        if size <= &100_000 {
-            res += size;
-        }
-
         for file in files.iter() {
             match file {
-                FileSystem::Folder { files, name, size } => res += traverse_fs(file),
+                FileSystem::Folder { files, name, size } => traverse_fs(file, res),
                 _ => {}
             }
         }
-    }
 
-    res
+        res.push(size.clone());
+    }
 }
 
 fn part_one(input: reader::Reader) -> usize {
-    traverse_fs(&parse_fs(input))
+    let mut res: Vec<usize> = vec![];
+    let fs = parse_fs(input);
+    traverse_fs(&fs, &mut res);
+    res.iter().filter(|value| value <= &&100_000).sum()
 }
 
 fn part_two(input: reader::Reader) -> usize {
-    0
+    let mut res: Vec<usize> = vec![];
+    let fs = parse_fs(input);
+    traverse_fs(&fs, &mut res);
+
+    let mut space_needed = 0;
+    if let FileSystem::Folder { files, name, size } = fs {
+        space_needed = 30_000_000 - (70_000_000 - size);
+    }
+
+    res.iter()
+        .filter(|value| value >= &&space_needed)
+        .min()
+        .unwrap()
+        .clone()
 }
 
 fn main() {
@@ -129,13 +139,12 @@ fn test_part_one() {
 
 #[test]
 fn test_part_two_example() {
-    assert_eq!(part_two(get_test_input()), 8381165);
+    assert_eq!(part_two(get_test_input()), 24933642);
 }
 
-#[ignore]
 #[test]
 fn test_part_two() {
-    assert_eq!(part_two(input()), 0);
+    assert_eq!(part_two(input()), 366028);
 }
 
 #[cfg(test)]
