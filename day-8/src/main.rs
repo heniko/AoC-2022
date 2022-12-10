@@ -1,4 +1,5 @@
 use reader;
+use std::cmp::max;
 
 fn parse_input(input: reader::Reader) -> Vec<Vec<usize>> {
     input
@@ -75,6 +76,26 @@ fn max_heights(line: Vec<usize>) -> Vec<usize> {
     res
 }
 
+// Score function for part 2
+fn directed_scenic_score(line: Vec<usize>) -> Vec<usize> {
+    let mut res = vec![0];
+
+    for i in 1..line.len() {
+        let mut score = 0;
+
+        for j in (0..i).rev() {
+            score += 1;
+            if line[j] >= line[i] {
+                break;
+            }
+        }
+
+        res.push(score);
+    }
+
+    res
+}
+
 fn part_one(input: reader::Reader) -> usize {
     let rows = parse_input(input);
 
@@ -98,7 +119,19 @@ fn part_one(input: reader::Reader) -> usize {
 }
 
 fn part_two(input: reader::Reader) -> usize {
-    0
+    let rows = parse_input(input);
+
+    let (up, down, left, right) = directed_score_maps(&rows, directed_scenic_score);
+
+    let mut highest = 0;
+    for row in 1..rows.len() - 1 {
+        for col in 1..rows[0].len() - 1 {
+            let curr = up[col][row] * down[col][row] * left[row][col] * right[row][col];
+            highest = max(highest, curr);
+        }
+    }
+
+    highest
 }
 
 fn main() {
@@ -123,16 +156,14 @@ fn test_part_one() {
     assert_eq!(part_one(input()), 1705);
 }
 
-#[ignore]
 #[test]
 fn test_part_two_example() {
     assert_eq!(part_two(get_test_input()), 8);
 }
 
-#[ignore]
 #[test]
 fn test_part_two() {
-    assert_eq!(part_two(input()), 0);
+    assert_eq!(part_two(input()), 371200);
 }
 
 #[cfg(test)]
