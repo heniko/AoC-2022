@@ -20,16 +20,20 @@ impl FromStr for Instruction {
     }
 }
 
-fn part_one(input: reader::Reader) -> isize {
-    let cycles = input
+fn get_cycle_changes(input: reader::Reader) -> Vec<isize> {
+    input
         .lines_as::<Instruction>()
         .iter()
         .map(|value| match value {
             Instruction::Noop => vec![0],
             Instruction::Addx(x) => vec![0, x.clone()],
         })
-        .flat_map(|value| value)
-        .collect::<Vec<isize>>();
+        .flatten()
+        .collect::<Vec<isize>>()
+}
+
+fn part_one(input: reader::Reader) -> isize {
+    let cycles = get_cycle_changes(input);
 
     let mut res = 0;
     let mut x = 1;
@@ -47,13 +51,34 @@ fn part_one(input: reader::Reader) -> isize {
     res
 }
 
-fn part_two(input: reader::Reader) -> isize {
-    0
+fn part_two(input: reader::Reader) -> String {
+    let cycles = get_cycle_changes(input);
+
+    let mut res: Vec<Vec<char>> = vec![];
+    let mut x = 1;
+
+    for row in 0..6 {
+        let mut line = vec![];
+        for col in 0..40 {
+            if col - 1 == x || col == x || col + 1 == x {
+                line.push('#');
+            } else {
+                line.push('.');
+            }
+            x += cycles[(row * 40 + col) as usize];
+        }
+        res.push(line);
+    }
+
+    res.iter()
+        .map(|line| line.iter().collect::<String>())
+        .collect::<Vec<String>>()
+        .join("\n")
 }
 
 fn main() {
     println!(
-        "Day x\n\tPart 1: {:?}\n\tPart 2: {:?}",
+        "Day x\n\tPart 1: {:?}\n\tPart 2: \n{}",
         part_one(input()),
         part_two(input())
     );
@@ -68,21 +93,35 @@ fn test_part_one_example() {
     assert_eq!(part_one(get_test_input()), 13140);
 }
 
-#[ignore]
 #[test]
 fn test_part_one() {
-    assert_eq!(part_one(input()), 0);
+    assert_eq!(part_one(input()), 12460);
 }
 
 #[test]
 fn test_part_two_example() {
-    assert_eq!(part_two(get_test_input()), 0);
+    assert_eq!(
+        part_two(get_test_input()),
+        r"##..##..##..##..##..##..##..##..##..##..
+###...###...###...###...###...###...###.
+####....####....####....####....####....
+#####.....#####.....#####.....#####.....
+######......######......######......####
+#######.......#######.......#######....."
+    );
 }
 
-#[ignore]
 #[test]
 fn test_part_two() {
-    assert_eq!(part_two(input()), 0);
+    assert_eq!(
+        part_two(input()),
+        r"####.####.####.###..###...##..#..#.#....
+#.......#.#....#..#.#..#.#..#.#.#..#....
+###....#..###..#..#.#..#.#..#.##...#....
+#.....#...#....###..###..####.#.#..#....
+#....#....#....#....#.#..#..#.#.#..#....
+####.####.#....#....#..#.#..#.#..#.####."
+    );
 }
 
 #[cfg(test)]
