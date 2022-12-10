@@ -35,15 +35,19 @@ impl Position {
         let mut y = self.y;
         let mut x = self.x;
 
-        if self.y == 2 {
-            y = 1;
-        } else if self.y == -2 {
-            y = -1;
-        } else if self.x == 2 {
-            x = 1;
-        } else if self.x == -2 {
-            x = -1;
-        } else {
+        if self.y > 1 {
+            y = self.y - 1;
+        } else if self.y < -1 {
+            y = self.y + 1;
+        }
+
+        if self.x > 1 {
+            x = self.x - 1;
+        } else if self.x < -1 {
+            x = self.x + 1;
+        }
+
+        if -2 < self.x && self.x < 2 && -2 < self.y && self.y < 2 {
             x = 0;
             y = 0;
         }
@@ -85,10 +89,8 @@ impl Rope {
 }
 
 fn move_rope(rope: &mut LinkedList<Rope>, dir: Position) {
-    let head_pos = rope.front().unwrap().position;
-    let mut target = head_pos + dir;
-
     rope.front_mut().unwrap().move_to_dir(dir);
+    let mut target = rope.front().unwrap().position;
 
     rope.iter_mut().skip(1).for_each(|r| {
         r.move_towards(target);
@@ -123,7 +125,11 @@ fn part_one(input: reader::Reader) -> usize {
 }
 
 fn part_two(input: reader::Reader) -> usize {
-    0
+    let lines = input.lines();
+    let mut rope = Rope::from(10);
+    execute_lines(&mut rope, &lines);
+
+    rope.back().unwrap().positions.len()
 }
 
 fn main() {
@@ -140,7 +146,7 @@ fn input() -> reader::Reader {
 
 #[test]
 fn test_part_one_example() {
-    assert_eq!(part_one(get_test_input()), 13);
+    assert_eq!(part_one(get_test_input()), 88); // 13 for the original test data
 }
 
 #[test]
@@ -150,13 +156,12 @@ fn test_part_one() {
 
 #[test]
 fn test_part_two_example() {
-    assert_eq!(part_two(get_test_input()), 0);
+    assert_eq!(part_two(get_test_input()), 36);
 }
 
-#[ignore]
 #[test]
 fn test_part_two() {
-    assert_eq!(part_two(input()), 0);
+    assert_eq!(part_two(input()), 2471);
 }
 
 #[cfg(test)]
