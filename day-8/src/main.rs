@@ -12,7 +12,56 @@ fn parse_input(input: reader::Reader) -> Vec<Vec<usize>> {
         .collect::<Vec<Vec<usize>>>()
 }
 
-fn highest_value_table(line: &Vec<usize>, rev: bool) -> Vec<usize> {
+fn two_way_score(
+    lines: &Vec<Vec<usize>>,
+    f: fn(Vec<usize>) -> Vec<usize>,
+) -> (Vec<Vec<usize>>, Vec<Vec<usize>>) {
+    let mut left = vec![];
+    let mut right = vec![];
+
+    lines.iter().for_each(|line| {
+        // Calculate row score (left)
+        let mut r = line.clone();
+        r = f(r);
+        // Calculate reversed row score (right)
+        let mut rr = line.clone();
+        rr.reverse();
+        rr = f(rr);
+        rr.reverse();
+
+        left.push(r);
+        right.push(rr);
+    });
+
+    (left, right)
+}
+
+fn directed_score_maps(
+    rows: &Vec<Vec<usize>>,
+    f: fn(Vec<usize>) -> Vec<usize>,
+) -> (
+    Vec<Vec<usize>>,
+    Vec<Vec<usize>>,
+    Vec<Vec<usize>>,
+    Vec<Vec<usize>>,
+) {
+    // https://stackoverflow.com/questions/64498617/how-to-transpose-a-vector-of-vectors-in-rust
+    let columns = (0..rows[0].len())
+        .map(|i| {
+            rows.iter()
+                .map(|inner| inner[i].clone())
+                .collect::<Vec<usize>>()
+        })
+        .collect::<Vec<Vec<usize>>>();
+
+    let (left, right) = two_way_score(&rows, f);
+    let (down, up) = two_way_score(&columns, f);
+
+    (up, down, left, right)
+}
+
+// Score function for part 1
+fn max_heights(line: Vec<usize>) -> Vec<usize> {
     let mut res = vec![];
     let mut highest = 0;
 
@@ -23,74 +72,29 @@ fn highest_value_table(line: &Vec<usize>, rev: bool) -> Vec<usize> {
         }
     });
 
-    if rev {
-        res.reverse();
-    }
-
     res
 }
 
 fn part_one(input: reader::Reader) -> usize {
     let rows = parse_input(input);
-    let columns = (0..rows[0].len())
-        .map(|i| {
-            rows.iter()
-                .map(|inner| inner[i].clone())
-                .collect::<Vec<usize>>()
-        })
-        .collect::<Vec<Vec<usize>>>();
 
-    let rows_highest_from_left = rows
-        .iter()
-        .map(|row| highest_value_table(row, false))
-        .collect::<Vec<Vec<usize>>>();
-    let rows_highest_from_right = rows
-        .iter()
-        .map(|row| {
-            highest_value_table(
-                &(row
-                    .iter()
-                    .rev()
-                    .map(|value| value.to_owned())
-                    .collect::<Vec<usize>>()),
-                true,
-            )
-        })
-        .collect::<Vec<Vec<usize>>>();
-
-    let columns_highest_from_left = columns
-        .iter()
-        .map(|columns| highest_value_table(columns, false))
-        .collect::<Vec<Vec<usize>>>();
-    let columns_highest_from_right = columns
-        .iter()
-        .map(|col| {
-            highest_value_table(
-                &(col
-                    .iter()
-                    .rev()
-                    .map(|value| value.to_owned())
-                    .collect::<Vec<usize>>()),
-                true,
-            )
-        })
-        .collect::<Vec<Vec<usize>>>();
+    let (up, down, left, right) = directed_score_maps(&rows, max_heights);
 
     let mut res = 0;
     for row in 1..rows.len() - 1 {
-        for col in 1..columns.len() - 1 {
+        for col in 1..rows[0].len() - 1 {
             let curr = rows[row][col];
-            if curr > rows_highest_from_left[row][col]
-                || curr > rows_highest_from_right[row][col]
-                || curr > columns_highest_from_left[col][row]
-                || curr > columns_highest_from_right[col][row]
+            if curr > left[row][col]
+                || curr > right[row][col]
+                || curr > down[col][row]
+                || curr > up[col][row]
             {
                 res += 1;
             }
         }
     }
 
-    res + 2 * rows.len() + 2 * columns.len() - 4
+    res + 2 * rows.len() + 2 * rows[0].len() - 4
 }
 
 fn part_two(input: reader::Reader) -> usize {
@@ -119,6 +123,7 @@ fn test_part_one() {
     assert_eq!(part_one(input()), 1705);
 }
 
+#[ignore]
 #[test]
 fn test_part_two_example() {
     assert_eq!(part_two(get_test_input()), 8);
