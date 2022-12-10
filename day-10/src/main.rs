@@ -1,10 +1,53 @@
 use reader;
+use std::{str::FromStr, string::ParseError};
 
-fn part_one(input: reader::Reader) -> usize {
-    0
+enum Instruction {
+    Noop,
+    Addx(isize),
 }
 
-fn part_two(input: reader::Reader) -> usize {
+impl FromStr for Instruction {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.starts_with("noop") {
+            Ok(Instruction::Noop)
+        } else {
+            let (i, n) = s.split_once(" ").unwrap();
+            let num = n.parse::<isize>().unwrap();
+            Ok(Instruction::Addx(num))
+        }
+    }
+}
+
+fn part_one(input: reader::Reader) -> isize {
+    let cycles = input
+        .lines_as::<Instruction>()
+        .iter()
+        .map(|value| match value {
+            Instruction::Noop => vec![0],
+            Instruction::Addx(x) => vec![0, x.clone()],
+        })
+        .flat_map(|value| value)
+        .collect::<Vec<isize>>();
+
+    let mut res = 0;
+    let mut x = 1;
+
+    for i in 0..cycles.len() {
+        let cycle = i as isize + 1;
+
+        if (cycle - 20) % 40 == 0 {
+            res += cycle * x;
+        }
+
+        x += cycles[i];
+    }
+
+    res
+}
+
+fn part_two(input: reader::Reader) -> isize {
     0
 }
 
