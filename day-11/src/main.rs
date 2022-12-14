@@ -1,152 +1,175 @@
 use reader;
-use std::{collections::BinaryHeap, str::FromStr, string::ParseError};
+use std::{str::FromStr, string::ParseError};
 
-enum Operation {
-    Number(i64),
+enum Num {
     Old,
-    Mul,
-    Plus,
+    Num(usize),
+}
+
+impl Num {
+    fn get_value(&self, old: usize) -> usize {
+        match self {
+            Num::Old => old,
+            Num::Num(value) => *value,
+        }
+    }
+}
+
+struct Op {
+    left: Num,
+    right: Num,
+    op: String,
+}
+
+impl FromStr for Op {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let ss = s.split(" ").collect::<Vec<&str>>();
+
+        let left = Op::num_or_old(ss[0]);
+        let right = Op::num_or_old(ss[2]);
+
+        Ok(Op {
+            left,
+            right,
+            op: ss[1].to_string(),
+        })
+    }
+}
+
+impl Op {
+    fn num_or_old(s: &str) -> Num {
+        match s {
+            "old" => Num::Old,
+            _ => Num::Num(s.parse().unwrap()),
+        }
+    }
+
+    fn run(&self, old: usize) -> usize {
+        let l = self.left.get_value(old);
+        let r = self.right.get_value(old);
+
+        match self.op.as_str() {
+            "*" => l * r,
+            "+" => l + r,
+            _ => panic!("Unknown op"),
+        }
+    }
+}
+
+struct Test {
+    if_true: usize,
+    if_false: usize,
+    modulo: usize,
+}
+
+impl Test {
+    fn run(&self, item: usize) -> usize {
+        match item % self.modulo {
+            0 => self.if_true,
+            _ => self.if_false,
+        }
+    }
 }
 
 struct Monkey {
-    inspections: i64,
-    items: Vec<i64>,
-    op: Vec<Operation>,
-    modulo: i64,
-    if_true: usize,
-    if_false: usize,
+    op: Op,
+    test: Test,
+    items: Vec<usize>,
+    count: usize,
 }
 
 impl FromStr for Monkey {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let ss = s.split("\n").collect::<Vec<&str>>();
-        let mut iter = ss.iter();
-
-        iter.next(); // Skip "Monkey x:" line
+        let mut iter = s.lines();
+        iter.next();
 
         let items = iter.next().unwrap()[18..]
             .split(", ")
-            .map(|value| value.parse::<i64>().unwrap())
+            .map(|value| value.parse::<usize>().unwrap())
             .collect();
 
-        let op = iter.next().unwrap()[19..]
-            .split(" ")
-            .map(|value| match value {
-                "old" => Operation::Old,
-                "*" => Operation::Mul,
-                "+" => Operation::Plus,
-                _ => Operation::Number(value.parse().unwrap()),
-            })
-            .collect();
+        let op = iter.next().unwrap()[19..].parse::<Op>().unwrap();
 
-        Ok(Monkey {
-            inspections: 0,
-            items,
-            op,
+        let test = Test {
             modulo: iter.next().unwrap()[21..].parse().unwrap(),
             if_true: iter.next().unwrap()[29..].parse().unwrap(),
             if_false: iter.next().unwrap()[30..].parse().unwrap(),
+        };
+
+        Ok(Monkey {
+            op,
+            test,
+            items,
+            count: 0,
         })
     }
 }
 
-impl Monkey {
-    fn inspect_item(&mut self) -> Option<(usize, i64)> {
-        let item = self.items.pop();
+struct Monkeys {
+    monkeys: Vec<Monkey>,
+    relaxer: Box<dyn Fn(usize) -> usize>,
+}
 
-        match item {
-            None => None,
-            Some(i) => {
-                self.inspections += 1;
+impl Monkeys {
+    fn from(monkeys: Vec<Monkey>, relaxer: Box<dyn Fn(usize) -> usize>) -> Monkeys {
+        Monkeys { monkeys, relaxer }
+    }
 
-                let item_worry_level = self.inspect(i);
+    fn round(&mut self) {
+        for index in 0..self.monkeys.len() {
+            let mut monkey = &mut self.monkeys[index];
 
-                if item_worry_level % self.modulo == 0 {
-                    Some((self.if_true, item_worry_level))
-                } else {
-                    Some((self.if_false, item_worry_level))
-                }
-            }
+            let to_add = monkey
+                .items
+                .iter()
+                .map(|item| monkey.op.run(*item))
+                .map(|item| self.relaxer.as_ref()(item))
+                .map(|item| (monkey.test.run(item), item))
+                .collect::<Vec<(usize, usize)>>();
+
+            monkey.items.clear();
+            monkey.count += to_add.len();
+
+            to_add
+                .iter()
+                .for_each(|(to, item)| self.monkeys[*to].items.push(*item));
         }
     }
 
-    fn take_item(&mut self, item: i64) {
-        self.items.push(item);
-    }
-
-    fn inspect(&self, item: i64) -> i64 {
-        let left = match self.op[0] {
-            Operation::Old => item,
-            Operation::Number(val) => val,
-            _ => panic!("Unexpected op"),
-        };
-
-        let right = match self.op[2] {
-            Operation::Old => item,
-            Operation::Number(val) => val,
-            _ => panic!("Unexpected op"),
-        };
-
-        let eval = match self.op[1] {
-            Operation::Mul => left * right,
-            Operation::Plus => left + right,
-            _ => panic!("Unexpected op"),
-        };
-
-        eval / 3
+    fn get_level_of_monkey_business(&mut self) -> usize {
+        self.monkeys.sort_by(|a, b| b.count.cmp(&a.count));
+        self.monkeys
+            .iter()
+            .map(|monkey| monkey.count)
+            .take(2)
+            .product()
     }
 }
 
-fn part_one(input: reader::Reader) -> i64 {
-    let mut monkeys = input.split_on_empty_line_into::<Monkey>();
+fn part_one(input: reader::Reader) -> usize {
+    let parsed_input = input.split_on_empty_line_into::<Monkey>();
+    let mut monkeys = Monkeys::from(parsed_input, Box::from(|x| x / 3));
 
-    for _ in 0..20 {
-        for i in 0..monkeys.len() {
-            loop {
-                let res = monkeys[i].inspect_item();
+    (0..20).for_each(|_| monkeys.round());
 
-                match res {
-                    None => break,
-                    Some((to, item)) => monkeys[to].take_item(item),
-                }
-            }
-        }
-    }
-
-    monkeys
-        .iter()
-        .map(|monkey| monkey.inspections)
-        .collect::<BinaryHeap<i64>>()
-        .iter()
-        .take(2)
-        .fold(1, |acc, val| acc * val)
+    monkeys.get_level_of_monkey_business()
 }
 
-fn part_two(input: reader::Reader) -> i64 {
-    let mut monkeys = input.split_on_empty_line_into::<Monkey>();
-
-    for _ in 0..10_000 {
-        for i in 0..monkeys.len() {
-            loop {
-                let res = monkeys[i].inspect_item();
-
-                match res {
-                    None => break,
-                    Some((to, item)) => monkeys[to].take_item(item),
-                }
-            }
-        }
-    }
-
-    monkeys
+fn part_two(input: reader::Reader) -> usize {
+    let parsed_input = input.split_on_empty_line_into::<Monkey>();
+    let modulo: usize = parsed_input
         .iter()
-        .map(|monkey| monkey.inspections)
-        .collect::<BinaryHeap<i64>>()
-        .iter()
-        .take(2)
-        .fold(1, |acc, val| acc * val)
+        .map(|monkey| monkey.test.modulo)
+        .product();
+    let mut monkeys = Monkeys::from(parsed_input, Box::from(move |x| x % modulo));
+
+    (0..10000).for_each(|_| monkeys.round());
+
+    monkeys.get_level_of_monkey_business()
 }
 
 fn main() {
@@ -176,10 +199,9 @@ fn test_part_two_example() {
     assert_eq!(part_two(get_test_input()), 2_713_310_158);
 }
 
-#[ignore]
 #[test]
 fn test_part_two() {
-    assert_eq!(part_two(input()), 0);
+    assert_eq!(part_two(input()), 30_599_555_965);
 }
 
 #[cfg(test)]
