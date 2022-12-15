@@ -1,6 +1,6 @@
 use reader;
+use std::cmp::min;
 use std::collections::VecDeque;
-use std::ops;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Position {
@@ -13,30 +13,6 @@ impl Position {
         Position { x, y }
     }
 }
-
-/*
-impl ops::Add<Position> for Position {
-    type Output = Position;
-
-    fn add(self, rhs: Position) -> Position {
-        Position {
-            x: self.x + rhs.x,
-            y: self.y + rhs.y,
-        }
-    }
-}
-
-impl ops::Sub<Position> for Position {
-    type Output = Position;
-
-    fn sub(self, rhs: Position) -> Position {
-        Position {
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-        }
-    }
-}
-*/
 
 struct Heightmap {
     start: Position,
@@ -143,7 +119,7 @@ impl Heightmap {
             })
         }
 
-        -1
+        std::i32::MAX
     }
 }
 
@@ -152,7 +128,21 @@ fn part_one(input: reader::Reader) -> i32 {
 }
 
 fn part_two(input: reader::Reader) -> i32 {
-    0
+    let mut map = Heightmap::from(input);
+
+    let mut shortest = map.bfs();
+
+    for x in 0..map.map.len() {
+        for y in 0..map.map[0].len() {
+            if map.get_height(Position::from(x, y)) == 0 {
+                map.start = Position::from(x, y);
+                let len = map.bfs();
+                shortest = min(shortest, len)
+            }
+        }
+    }
+
+    shortest
 }
 
 fn main() {
@@ -182,10 +172,9 @@ fn test_part_two_example() {
     assert_eq!(part_two(get_test_input()), 29);
 }
 
-#[ignore]
 #[test]
 fn test_part_two() {
-    assert_eq!(part_two(input()), 0);
+    assert_eq!(part_two(input()), 508);
 }
 
 #[cfg(test)]
