@@ -146,24 +146,19 @@ fn part_two(input: reader::Reader) -> usize {
     // Sort with order(). Values are cloned as order() mutates them.
     values.sort_by(|a, b| order(&mut a.clone(), &mut b.clone()));
 
+    // Find indexes of divider packets
     let mut first = 0;
     let mut second = 0;
 
-    // Find indexes of divider packets
+    let first_val = "[[2]]".parse::<Value>().unwrap();
+    let second_val = "[[6]]".parse::<Value>().unwrap();
+
     for (index, value) in values.iter().enumerate() {
-        if value
-            == &Value::List(VecDeque::from(vec![Value::List(VecDeque::from(vec![
-                Value::Integer(2),
-            ]))]))
-        {
+        if value == &first_val {
             first = index;
         }
 
-        if value
-            == &Value::List(VecDeque::from(vec![Value::List(VecDeque::from(vec![
-                Value::Integer(6),
-            ]))]))
-        {
+        if value == &second_val {
             second = index;
         }
     }
