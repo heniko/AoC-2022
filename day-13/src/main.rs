@@ -115,7 +115,40 @@ fn part_one(input: reader::Reader) -> usize {
 }
 
 fn part_two(input: reader::Reader) -> usize {
-    0
+    let divider_packets = vec!["[[2]]".to_string(), "[[6]]".to_string()];
+
+    let mut values = input
+        .lines()
+        .iter()
+        .chain(divider_packets.iter())
+        .filter(|line| line.as_str() != "")
+        .map(|line| line.parse::<Value>().unwrap())
+        .collect::<Vec<Value>>();
+
+    values.sort_by(|a, b| order(&mut a.clone(), &mut b.clone()));
+
+    let mut first = 0;
+    let mut second = 0;
+
+    for (index, value) in values.iter().enumerate() {
+        if value
+            == &Value::List(VecDeque::from(vec![Value::List(VecDeque::from(vec![
+                Value::Integer(2),
+            ]))]))
+        {
+            first = index;
+        }
+
+        if value
+            == &Value::List(VecDeque::from(vec![Value::List(VecDeque::from(vec![
+                Value::Integer(6),
+            ]))]))
+        {
+            second = index;
+        }
+    }
+
+    (first + 1) * (second + 1)
 }
 
 fn main() {
@@ -142,7 +175,7 @@ fn test_part_one() {
 
 #[test]
 fn test_part_two_example() {
-    assert_eq!(part_two(get_test_input()), 0);
+    assert_eq!(part_two(get_test_input()), 140);
 }
 
 #[ignore]
