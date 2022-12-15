@@ -57,9 +57,20 @@ impl Value {
 }
 
 fn order(left: &mut Value, right: &mut Value) -> Ordering {
+    /*
+    Finds the order of two lists recursively.
+     */
     match (left, right) {
+        // Case: Both values are integers
         (Value::Integer(a), Value::Integer(b)) => (*a).cmp(b),
+        // Case: Both values are lists
         (Value::List(a), Value::List(b)) => {
+            /*
+            While either list contains a value we compare the values
+            untill we find one that isn't equal. If list runs out of
+            elements default value of -1 is returned meaning that list
+            win the next comparison.
+            */
             let mut l;
             let mut r;
 
@@ -74,21 +85,24 @@ fn order(left: &mut Value, right: &mut Value) -> Ordering {
                 }
             }
 
+            // Default case when both lists run out of elements at the same time
             Ordering::Equal
         }
+        // Case: Left = Integer, Right = List
         (Value::Integer(a), b) => order(
             &mut Value::List(VecDeque::from(vec![Value::Integer(*a)])),
             b,
         ),
+        // Case: Left = List, Right = Integer
         (a, Value::Integer(b)) => order(
             a,
             &mut Value::List(VecDeque::from(vec![Value::Integer(*b)])),
         ),
-        _ => Ordering::Equal,
     }
 }
 
 fn part_one(input: reader::Reader) -> usize {
+    // Split input into pairs of values
     let mut pairs = input
         .split_on_empty_line()
         .iter()
@@ -101,6 +115,8 @@ fn part_one(input: reader::Reader) -> usize {
         })
         .collect::<Vec<Vec<Value>>>();
 
+    // Compare pairs and sum indexes where pairs are in
+    // correct order (With +1 offset).
     let mut sum = 0;
 
     for (index, pair) in pairs.iter_mut().enumerate() {
@@ -117,6 +133,8 @@ fn part_one(input: reader::Reader) -> usize {
 fn part_two(input: reader::Reader) -> usize {
     let divider_packets = vec!["[[2]]".to_string(), "[[6]]".to_string()];
 
+    // Split input to lines, add divider packets, remove
+    // empty lines and parse lines as Value type.
     let mut values = input
         .lines()
         .iter()
@@ -125,11 +143,13 @@ fn part_two(input: reader::Reader) -> usize {
         .map(|line| line.parse::<Value>().unwrap())
         .collect::<Vec<Value>>();
 
+    // Sort with order(). Values are cloned as order() mutates them.
     values.sort_by(|a, b| order(&mut a.clone(), &mut b.clone()));
 
     let mut first = 0;
     let mut second = 0;
 
+    // Find indexes of divider packets
     for (index, value) in values.iter().enumerate() {
         if value
             == &Value::List(VecDeque::from(vec![Value::List(VecDeque::from(vec![
@@ -178,10 +198,9 @@ fn test_part_two_example() {
     assert_eq!(part_two(get_test_input()), 140);
 }
 
-#[ignore]
 #[test]
 fn test_part_two() {
-    assert_eq!(part_two(input()), 0);
+    assert_eq!(part_two(input()), 20056);
 }
 
 #[cfg(test)]
