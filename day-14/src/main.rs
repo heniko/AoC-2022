@@ -96,10 +96,24 @@ impl Map {
         map
     }
 
-    fn drop_sand(&mut self) -> bool {
+    fn drop_sand_part_one(&mut self) -> bool {
+        let dropped = self.drop_sand();
+        self.map.insert(dropped.clone());
+
+        dropped.y > self.max_y
+    }
+
+    fn drop_sand_part_two(&mut self) -> bool {
+        let dropped = self.drop_sand();
+        self.map.insert(dropped.clone());
+
+        dropped == Point { x: 500, y: 0 }
+    }
+
+    fn drop_sand(&mut self) -> Point {
         let mut curr = Point { x: 500, y: 0 };
 
-        while curr.y <= self.max_y {
+        loop {
             let down = curr + Point { x: 0, y: 1 };
             let left = curr + Point { x: -1, y: 1 };
             let right = curr + Point { x: 1, y: 1 };
@@ -111,18 +125,15 @@ impl Map {
             } else if self.is_free(&right) {
                 curr = right;
             } else {
-                // Down, left and right filled so place sand here
-                self.map.insert(curr);
-                return false;
+                break;
             }
         }
 
-        // While loop completed so void was reached
-        true
+        curr
     }
 
     fn is_free(&self, p: &Point) -> bool {
-        !self.map.contains(p)
+        p.y < self.max_y + 2 && !self.map.contains(p)
     }
 }
 
@@ -131,7 +142,7 @@ fn part_one(input: reader::Reader) -> usize {
 
     let mut count = 0;
 
-    while !map.drop_sand() {
+    while !map.drop_sand_part_one() {
         count += 1;
     }
 
@@ -139,7 +150,15 @@ fn part_one(input: reader::Reader) -> usize {
 }
 
 fn part_two(input: reader::Reader) -> usize {
-    0
+    let mut map = Map::from(input);
+
+    let mut count = 0;
+
+    while !map.drop_sand_part_two() {
+        count += 1;
+    }
+
+    count + 1
 }
 
 fn main() {
@@ -166,13 +185,12 @@ fn test_part_one() {
 
 #[test]
 fn test_part_two_example() {
-    assert_eq!(part_two(get_test_input()), 0);
+    assert_eq!(part_two(get_test_input()), 93);
 }
 
-#[ignore]
 #[test]
 fn test_part_two() {
-    assert_eq!(part_two(input()), 0);
+    assert_eq!(part_two(input()), 25434);
 }
 
 #[cfg(test)]
