@@ -13,7 +13,7 @@ impl FromStr for Instruction {
         if s.starts_with("noop") {
             Ok(Instruction::Noop)
         } else {
-            let (i, n) = s.split_once(" ").unwrap();
+            let (_, n) = s.split_once(" ").unwrap();
             let num = n.parse::<isize>().unwrap();
             Ok(Instruction::Addx(num))
         }
