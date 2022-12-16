@@ -90,6 +90,10 @@ impl Sensor {
             Some(Range::from(self.at.x - extras, self.at.x + extras))
         }
     }
+
+    fn is_covering(&self, p: Point) -> bool {
+        self.at.manhattan_distance(p) <= self.closest_len()
+    }
 }
 
 fn part_one(input: reader::Reader, y: isize) -> isize {
@@ -114,15 +118,40 @@ fn part_one(input: reader::Reader, y: isize) -> isize {
     len
 }
 
-fn part_two(input: reader::Reader) -> usize {
-    0
+fn part_two(input: reader::Reader, y: isize) -> isize {
+    let sensors = input.lines_as::<Sensor>();
+
+    let mut res = Point::from(0, 0);
+
+    for i in 0..=y {
+        let mut x = 0;
+        while x <= y {
+            let mut x_xhanged = false;
+            for sensor in sensors.iter() {
+                if sensor.is_covering(Point::from(x, i)) {
+                    x_xhanged = true;
+                    x = sensor.range_at_row(i).unwrap().end + 1;
+                    break;
+                }
+            }
+            if !x_xhanged {
+                break;
+            }
+        }
+        if x <= y {
+            res = Point::from(x, i);
+            break;
+        }
+    }
+
+    res.x * 4_000_000 + res.y
 }
 
 fn main() {
     println!(
         "Day x\n\tPart 1: {:?}\n\tPart 2: {:?}",
         part_one(input(), 2_000_000),
-        part_two(input())
+        part_two(input(), 4_000_000)
     );
 }
 
@@ -142,13 +171,12 @@ fn test_part_one() {
 
 #[test]
 fn test_part_two_example() {
-    assert_eq!(part_two(get_test_input()), 0);
+    assert_eq!(part_two(get_test_input(), 20), 56000011);
 }
 
-#[ignore]
 #[test]
 fn test_part_two() {
-    assert_eq!(part_two(input()), 0);
+    assert_eq!(part_two(input(), 4_000_000), 11645454855041);
 }
 
 #[cfg(test)]
